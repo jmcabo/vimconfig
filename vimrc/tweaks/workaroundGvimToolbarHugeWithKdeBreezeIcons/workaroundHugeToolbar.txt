@@ -1,0 +1,138 @@
+HOW TO FIX HUGE GVIM TOOLBARS AFTER UPGRADING TO KUBUNTU 24.04
+==============================================================
+
+Created: 2024-10-19
+Updated: 2024-10-19
+
+
+The problem is system-help.svg which is bigger than the other icons when using
+vim under the Plasma KDE Breeze theme.
+The issue is described here:
+
+        "[vim/vim] wasted space of toolbar in openSUSE Leap 15.0 (#2957)", 2018-05-26
+        https://groups.google.com/g/vim_dev/c/oH9r5pQAO68
+
+It started happening in 2018 for OpenSuse and the breeze theme. They never really
+fixed it but worked around it. And now it happens in 2024 with Kubuntu 24.04.
+
+1) One fix is to rename the .SVG, but then a placeholder icon is shown in place:
+
+        cd /usr/share/icons/breeze/apps/48
+        mv system-help.svg system-help.svg.disabled_by_jmc
+
+2) The other fix is to bring the missing .SVGs from Kubuntu 22.04 breeze.
+   I grabbed them from a VM but I'm sure that they can be grabbed from the
+   "breeze-icon-theme" ubuntu debian package.
+   The problematic version in Kubuntu 24.04 is:
+        breeze-icon-theme  4:5.115.0-0ubuntu3
+   The good version in the old Kubuntu 22.04 is:
+        breeze-icon-theme  4:5.92.0-0ubuntu1
+
+   The files are like this in the new Kubuntu:
+
+        $ cd /usr/share/icons
+        $ find -name "system-help.svg" -ls
+        ...   2271 Feb  3  2024 ./breeze/apps/32/system-help.svg
+        ...   4119 Feb  3  2024 ./breeze/apps/48/system-help.svg
+        ...     39 Feb 19  2024 ./breeze-dark/apps/32/system-help.svg -> ../../../breeze/apps/32/system-help.svg
+        ...     39 Feb 19  2024 ./breeze-dark/apps/48/system-help.svg -> ../../../breeze/apps/48/system-help.svg
+
+    (I excluded files from other themes that are equally named)
+
+    The files in the old Kubuntu:
+
+        ...   1248 Mar  5  2022 ./breeze-dark/apps/16/system-help.svg
+        ...   4255 Mar  5  2022 ./breeze-dark/apps/22/system-help.svg
+        ...   2271 Mar  5  2022 ./breeze-dark/apps/32/system-help.svg
+        ...   4119 Mar  5  2022 ./breeze-dark/apps/48/system-help.svg
+        ...   1248 Mar  5  2022 ./breeze/apps/16/system-help.svg
+        ...   4255 Mar  5  2022 ./breeze/apps/22/system-help.svg
+        ...     44 Mar 16  2022 ./breeze/apps/32/system-help.svg -> ../../../breeze-dark/apps/32/system-help.svg
+        ...     44 Mar 16  2022 ./breeze/apps/48/system-help.svg -> ../../../breeze-dark/apps/48/system-help.svg
+
+
+    The md5sums of the 32 and 48 versions match between new Kubuntu and old Kubuntu.
+    The md5 of all the files is:
+
+        $ find -name "system-help.svg" -exec md5sum {} \;
+        f54b81e6a7fc69bcf6bc602859e12173  ./breeze/apps/16/system-help.svg
+        6497c1084ec3b86b538edb0b99e3b441  ./breeze/apps/22/system-help.svg
+        8ff57f6f98621d86c332b7b553acbd24  ./breeze/apps/32/system-help.svg
+        27c731cfb72e183e880364e343c76865  ./breeze/apps/48/system-help.svg
+
+    The fix:
+        1. Copy the files from old Kubuntu to a directory:
+
+            cd /usr/share/icons/breeze/apps
+            mkdir /tmp/usr_share_icons_breeze_apps
+            for a in 16 22 32 48; do mkdir /tmp/usr_share_icons_breeze_apps/"$a"; done
+            for a in 16 22 32 48; do cp --pr=t "$a"/system-help.svg /tmp/usr_share_icons_breeze_apps/"$a"; done
+
+        2. Bring that directory to the new Kubuntu, and copy it to destination.
+
+            #First sudo then umask then copy:
+            cd <tmp/usr_share_icons_breeze_apps>
+            sudo su
+            umask 0022
+            cp -r --pr=t --update=none -i * /usr/share/icons/breeze/apps/
+
+           Or:
+
+            #Or in a single command, sudo with umask:
+            cd <tmp/usr_share_icons_breeze_apps>
+            sudo bash -c "{ umask 0022; cp -r --pr=t --update=none -i * /usr/share/icons/breeze/apps/; }"
+
+        3. Propagate to breeze-dark just in case:
+
+                sudo su
+                umask 0022
+                cd /usr/share/icons/breeze-dark/apps/
+                cp -a ../../breeze/apps/16/system-help.svg 16/
+                cp -a ../../breeze/apps/22/system-help.svg 22/
+
+        3. Update icon cache:
+           NOTES: DON'T forget the umask.
+                  Do delete the old cache files first.
+                  Do not append a slash to the icon theme name
+
+                # cd /usr/share/icons
+                # rm breeze/icon-theme.cache
+                # rm breeze-dark/icon-theme.cache
+                # umask 0022
+                # gtk-update-icon-cache breeze
+                gtk-update-icon-cache: Cache file created successfully.
+                # gtk-update-icon-cache breeze-dark
+                gtk-update-icon-cache: Cache file created successfully.
+                #
+
+        4. Restart
+
+        5. This still didn't work, and I realized that the directory traverse order puts
+           the 48/ subdir before the others:
+
+                :/usr/share/icons/breeze/apps# find | grep system-help
+                ./48/system-help.svg
+                ./32/system-help.svg
+                ./22/system-help.svg
+                ./16/system-help.svg
+
+           And playing by renaming the dirs and duplicating them and renaming them
+           back didn't work.
+           It seems ext4 structures favor the "48" filename over "16".
+
+        6. That still didn't work.
+           So I just renamed the apps/48 file.
+
+                cd /usr/share/icons/breeze/apps/48
+                mv system-help.svg system-help.svg.disabled_by_jmc
+
+           and rebuild cache once more.
+           That's it.
+           Another way would be to remove read permission from 'others' like this:
+                sudo chmod o-r /usr/share/icons/breeze/apps/48/system-help.svg
+           At least it doesn't show a placeholder now that we have the
+           small versions of the icons from old kubuntu.
+
+DONE!
+__
+

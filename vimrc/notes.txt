@@ -1,0 +1,49 @@
+NOTES
+-----
+
+1) Help tags:
+
+    -The first time, update help tags by running:
+
+            :helptags ALL
+
+     if the plugins doc/ are in root only writeable dirs, then run that from Vim as root.
+
+2) Terminal colors:
+       
+    -Set the terminal to 256 colors (in each terminal app Profile, or in "/etc/profile.d/.." when TERM was "xterm"):
+            
+            export TERM='xterm-256color'
+    
+    -If the custom 16 palette colors cannot be customized, set this flag
+     to 0 or v:false in colors/jmcdark.vim:
+
+            let g:JmcDarkForce16ColorsInConsole=0
+
+     That way, it will use the 256 color extended palette to get an approximation.
+
+3) CtrlP keys:
+
+            <C-f> or <C-Up>    Switch mode (MRU, files, buffers)
+            <C-b> or <C-Down>  Switch mode the other way (MRU, files, buffers).
+     
+   VIM has two ways to organize files: Tabs and Buffers.
+   Buffers are always there. Tabs are only there if one creates a new one,
+   for example with:
+
+            :tabnew
+
+   What the terminal tab plugins for VIM do, is to show all the buffers as tabs.
+   But as soon as a new tab is open, Airline plugin switches to show only tabs.
+   To exit that mode, close all the tabs with:
+
+            :tabclose or :tabc
+
+   To list the tabs:
+
+            :tabs
+
+   To list the buffers:
+            
+            :ls
+__
