@@ -1,0 +1,534 @@
+Salir sin grabar:       :q!, ZQ
+Salir grabando:         :wq, :x, ZZ
+Grabar:                 :w
+Iniciar modo edición:   a,A,i,R para modo inserción o modo replace.
+Salir a modo normal:    <ESC>, CTRL-C, CTRL-[
+
+Undo:                   u ó :undo
+Redo:                   CTRL-r
+Buscar:                 "/" y el texto. Luego "n" para repetir búsqueda.
+Reemplazar:             :%s/string1/string2/g   reemplaza string1 por string2
+Contar matches:         :%s/palabra//gn         Cuenta sin reemplazar. Sin la g solo cuenta uno por linea.
+Contar lineas matchean: :%s/palabra//n          Cuenta sin reemplazar. Sin la g solo cuenta uno por linea.
+Ir a línea n:           nG
+Mostrar byte offset:    gCtrl+G
+Ir a byte offset:       ngo     (ejemplo: 123go  tipeado en modo normal)
+ASCII byte char cursor: ga      (:as)
+UTF-8 byte char cursor: g8
+
+Borrar línea entera:    dd
+Join de líneas:         J
+Cómo seleccionar:       Tipear "v", "V" o "CTRL-v" para iniciar la selección.
+                        Luego ejecutar un operador sobre esta.
+Operadores de selección:
+                <, >  Desplazar texto un TAB atrás o adelante.
+                d     Eliminar
+                c     Eliminar y poner el cursor en modo insertar adelante
+                y     Copiar (para pegar usar "p" o "P" en Normal Mode)
+
+Comienzo archivo:                     gg
+Fin archivo:                          G
+Desplazar línea abajo o arriba:       CTRL-e, CTRL-y
+Desplazar media página:               CTRL-u, CTRL-d
+Desplazar página:                     CTRL-f, CTRL-b
+Centrar buffer, medio, tope o abajo:  zz, zt, zb
+Palabra adelante, atrás:              w, b
+
+Abrir archivo:          :e <filename>
+Navegar la ayuda:       CTRL-] para ir a link, CTRL-o para volver.
+
+Cambiar tabs por espacios:  ":set expandtab" y después ":retab"
+Mostrar tabs y newlines:    ":set list" (puede necesitar ":set
+                                listchars=tab:>-,eol:$")
+
+Intercambiar lineas:		ddp
+Intercambiar ventanas:		<CTRL-W>R
+
+Directorio current file:	:cd %:h
+Filename relativo a pwd:    :echo expand("%")
+Full filename con path:     :echo expand("%:p")
+Parent dir:                 :echo expand("%:p:h")
+
+Indentar automaticamente seleccion: =
+(seleccionar y tipear la tecla igual)
+
+Mostrar definición de un comando:   :command <nombre>
+Por ejemplo, para ver el regex de esta:
+                                    :command QuitarTrailingSpace
+Para ver un function es igual:      :function <nombre>
+
+
+LEER SALIDA DE COMANDO:
+======================
+Leer un comando como 'map' y 'autocmd' a un buffer (para poder greppear la lista
+de atajos o de autocmds):
+
+    :redir @" | silent map | redir END | new | put!
+
+    :redir @" | silent autocmd | redir END | new | put!
+
+Saber el contenido de una variable booleana sin setearla. Si hacemos ":set wrap"
+entonces la pone en true. Para saber el valor actual es con signo de pregunta:
+
+    :set wrap?
+
+
+VIMDIFF SIN SALIR:
+=================
+Hacer un vimdiff desde dentro de Vim:    :vert diffs two.txt
+                                         :vertical diffsplit two.txt
+
+Intercambiar orden paneles de diff
+(mandar el izquierdo a la derecha, etc.):   CTRL+W, X
+
+
+VIMDIFF DOS COMANDOS:
+====================
+Comparar la salida de dos comandos:      vimdiff <(comando1) <(comando2)
+
+Ejemplo, comparar dos estructuras de directorio, sin crear temporales:
+
+    vimdiff <(cd dest_orig; find) <(cd dest_two; find)
+
+Equivalente a 'vimdiff' si no existe el shortcut:   vi -d orig.txt two.txt
+
+
+JUSTIFICAR PÁRRAFOS:
+===================
+Re justificar un párrafo, o reformatear o reindentar un párrafo:   gq
+Pero en TXTs tiene problemas con las comas y puntos y hace lío.
+Entonces antes hay que cambiar esto, el formatoptions:
+    :set fo=tcq
+por esto:
+    :set fo=
+y poner un textwidth que no sea el 0, que equivale a 79 u 80. Entonces
+poner:
+    :set tw=92
+por ejemplo. Y ahí el 'gq' reformatea y hace reflow que es un lujo.
+Para que deje de hacer lío con las comas en los TXTs al reindentar,
+además hay que hacer set nocindent. Entonces queda así:
+    :set fo=
+    :set tw=92
+    :set nocindent
+
+
+JUSTIFICAR PÁRRAFOS AUMOTÁTICAMENTE:
+===================================
+Search for long lines (longer than 80) and wrap them/indent them, using %v and norm:
+        :%g/\%>80v/norm gql
+
+
+INSERTAR UNA CUENTA EN VIM:
+==========================
+a. Usando registro de expresiones:
+        i CTRL-R = 10+2
+   El "=" igual es el expression register, y es especial para hacer esto.
+a1. Haciendo varias expresiones a la vez, una en cada renglón:
+        i CTRL-R = [0x100, 0x1000, 0x10000]
+   Y eso pone la conversión a decimal de esos 3 números cada uno en su renglón:
+        256
+        4096
+        65536
+   Pueden ser cuentas también, o strings con comilla, dentro del array:
+        <CTRL-R> = [10+2, 'es doce y el espacio es:', 0x20]
+b. Usando :echo y tipeando a mano:
+        :echo 10+2
+   Y tipear el resultado mientras se vea en el status bar:
+c. Redireccionar el echo:
+   Si estamos encaprichados en que tiene que ser con :echo, entonces:
+           :redir @" | silent :echo 10+2 | redir END | put!
+   El "| put!" lo pastea, pero ya está en el register '"' default comilla.
+   Así que no hace falta. Así es más fácil de recordar:
+           :redir @" | silent :echo 10+2 | redir end
+   También se puede hacer "| new | put!" para que el paste sea en un nuevo
+   buffer.
+   Y así es usando el registro 'a':
+           :redir @a | silent :echo 10+2 | redir end | put! a
+   El 'put!' difiere del 'put' en si sube a la linea anterior o pastea
+   después de la línea actual.
+   Y si se quiere dejar la redirección abierta, y hacer muchos comandos
+   es así:
+           :redir @a
+           :echo 10*2
+           :echo 3*2
+           :ls
+           :redir end
+   Y luego uno va y pastea el register 'a' con:
+           "ap
+   o con:
+           :put a
+d. Con put execute:
+        :put =execute('echo 10+2')
+   Y para evaluar muchas expresiones a la vez:
+        :put =execute('echo [10+2, ''hola'', 0x20]')
+   Resultado:
+        [12, 'hola', 32]
+   El resultado no es en múltiples renglones de esa manera, pero bueno.
+
+
+RESTAR DOS COLUMNAS DE NÚMEROS:
+==============================
+a. Escribir:
+        10   5
+        20   5
+        30   5
+   Seleccionar con SHIFT+V y correr esto:
+        :'<,'>s/\(\d\+\)\s*\(\d\+\)/\=submatch(1)-submatch(2)
+   Resultado:
+        5
+        15
+        25
+a1. Restar dos columnas con decimales:
+        :'<,'>s/\(\S\+\)\s*\(\S\+\)/\=str2float(submatch(1))-str2float(submatch(2))
+   La clave es usar str2float() porque si no ignora los decimales, y que
+   el regex admita puntos y '-' además de dígitos.
+b. Para restar un número hardcodeado es más cortito:
+   Escribir:
+        10
+        20
+        30
+   Seleccionar con SHIFT+V y correr:
+        :'<,'>s/\d\+/\= submatch(0) - 5
+b1. Restar un hardcoded a una columna en decimal:
+        :'<,'>s/[0-9.-]\+/\= str2float(submatch(0)) - 5
+   Y si sabemos que solo hay números la regex puede ser .*:
+        :'<,'>s/.*/\= str2float(submatch(0)) - 5
+NOTA: usar :keepp para no hacer clobber del último regex.
+
+
+EVALUAR CUENTAS EN RENGLONES CON CALCULADORA BC:
+===============================================
+a. Escribir
+        10 - 5
+        15 - 5
+        20 - 5
+   Seleccionar con SHIFT+V y correr:
+        :'<,'>!bc -l
+   Voilá! El resultado es:
+        5
+        10
+        15
+b. Más ejemplos:
+        10 * 10
+        2^10
+        l(2.718)
+        e(1)
+   Resultado de seleccionar y correr "!bc -l":
+        100
+        1024
+        .99989631572895196894
+        2.71828182845904523536
+
+
+TOMAR CAMPOS DE CADA RENGLÓN Y PASÁRSELOS A UN COMANDO EN OTRO FORMATO POR STDIN:
+================================================================================
+a. Usando :s con \= y system():
+   Escribir
+        10   7
+        11   7
+        12   7
+   Seleccionar con SHIFT+V y correr:
+        :keepp '<,'>s/\(\S*\) *\(\S*\)/\=trim(system('bc -l', submatch(1) . ' - ' . submatch(2) . "\n"))
+   Resultado:
+        3
+        4
+        5
+   Entonces:
+        .El system corre un comando y devuelve el resultado en un string.
+        .El segundo parámetro de system() luego de la coma, se pasa por STDIN a ese
+         comando. Tiene que estar el newline "\n" porque si no se queja el "bc -l".
+        .El trim() es necesario porque si no Vim mete más newlines en los resultados.
+   Casi que no dan ganas de ir a Excel con tantas cosas que se pueden hacer sin
+   salir de Vim!
+b. Usando system() pero armando el STDIN con el echo de BASH:
+        :keepp '<,'>s/\(\S*\) *\(\S*\)/\=trim(system('echo ' . submatch(1) . ' - ' . submatch(2) . ' | bc -l'))
+   Resultado:
+        3
+        4
+        5
+c. Usando execute() en vez de system():
+        :keepp '<,'>s/\(\S*\) *\(\S*\)/\=trim(execute('!echo ' . submatch(1) . ' - ' . submatch(2) . ' | bc -l'))
+   ahí el resultado que inserta es:
+        :!echo 10 - 7 | bc -l
+
+        3
+        :!echo 11 - 7 | bc -l
+
+        4
+        :!echo 12 - 7 | bc -l
+
+        5
+   O sea, muy verboso. Pero el execute() permite usar comandos de Vim.
+   Para mandar por STDIN no tiene la opción del 2do argumento de system() así que
+   tuve que armar una llamada al echo de BASH.
+NOTA: usando :keepp para no hacer clobber del último regex.
+
+1. Ejemplo de uso con DateDiff:
+   Escribir:
+        Desperté 5:05AM. Antes 2AM y 22:30hs. Dormí 21:30hs.
+        Desperté 5:30AM. Antes 2AM y 4AM. Dormí 23:30hs.
+        Desperté 5:20AM. Antes 2AM. Dormí 00:00hs.
+        Desperté 5:55AM. Antes 1AM. Dormí 22:00hs.
+        Desperté 5:40AM. Antes 2AM. Dormí 00:15hs. Antes siesta tipo 21hs.
+        Desperté 5:20AM. Dormí 23:00hs.
+   Correr sobre todo el archivo:
+        :keepp %s/Desperté \([0-9:]*\).*Dormí \([0-9:]*\).*/\=trim(system('DateDiff -t ' . submatch(1) . ' yesterday ' . submatch(2)))
+   Resultado:
+        7.58333
+        6
+        29.3333
+        7.91667
+        29.4167
+        6.33333
+    Ahora hay que restar 24 a los que se pasaron por 1 día:
+    Hecho con ternary expression tipo IF:
+        :%s/\([0-9.]\+\)/\=submatch(1) >= 24 ? str2float(submatch(1)) - 24 : submatch(1)
+    Hecho con fmod():
+        :%s/\([0-9.]\+\)/\=fmod(str2float(submatch(1)), 24)
+    Resultado:
+        7.58333
+        6.0
+        5.3333
+        7.91667
+        5.4167
+        6.33333
+    Finalmente, en algunos casos donde decía 12:xx debía decir 0:xx, y eso hizo que
+    a veces haya que restar 12. Restamos 12 si mayor a 12:
+        :%s/\([0-9.]\+\)/\=fmod(str2float(submatch(1)), 12)
+    Listoo.
+
+2. Promedio:
+   Teniendo:
+        7.58333
+        6.0
+        5.3333
+        7.91667
+        5.4167
+        6.33333
+    1) Ahora se puede ver el promedio con el ++ del VMATH plugin.
+    2) O ver promedio, la mediana y todo con cvsstat:
+        :%!csvstat -y0 -H
+    3) También se puede sacar el promedio con AWK:
+        :%!awk '{ s += $0 } END { print s / NR }'
+       Mejor:
+        :%!awk '{ sum += $0 } END { if (NR > 0) print sum / NR }'
+       Si es la segunda columna y están separadas por '|" chars, hacer:
+        :%!awk -F '|' '{ sum += $2 } END { if (NR > 0) print sum / NR }'
+       Para que no pise las rows con un único valor, reimprimir los rows con "print;" a secas:
+        :%!awk '{ print; sum += $0 } END { if (NR > 0) print sum / NR }'
+    Listo.
+
+3. Resumen todo junto:
+        :keepp %s/Desperté \([0-9:]*\).*Dormí \([0-9:]*\).*/\=trim(system('DateDiff -t ' . submatch(1) . ' yesterday ' . submatch(2)))
+        :%s/\([0-9.]\+\)/\=fmod(str2float(submatch(1)), 24)
+        :%s/\([0-9.]\+\)/\=fmod(str2float(submatch(1)), 12)
+        :%!awk '{ s += $0 } END { print s / NR }'
+   Listo!.
+   Lo próximo interesante sería cómo generar un gráfico a partir de una columna de datos desde Vim.
+   Puede ser a través de generar un .PNG y abrir Gwenview, etc.
+   O cómo meter esos 4 comandos en una función o BASH script, o alterar DateDiff para que acepte
+   argumentos por STDIN.
+
+
+CONVERTIR COLUMNA DE NÚMEROS DECIMALES A HEXADECIMAL:
+====================================================
+a. Escribir:
+        10
+        20
+        30
+Seleccionar y correr:
+        :'<,'>s/\d\+/\=printf("0x%04x", submatch(0))
+Resultado:
+        0x000a
+        0x0014
+        0x001e
+Se puede usar "0x%x" si no hace falta el zero padding.
+Se puede hacer de todo con el comando \= de reemplazar por expresiones.
+
+
+TRUQUITOS DE COMMAND LINE:
+=========================
+1) Meter una cuenta en el medio del command line:
+        CTRL+R =
+2) Pegar algo que estaba en el history del expression register, como la cuenta
+   de recién:
+        CTRL+R =
+        Luego buscar en el history para arriba
+        Y finalmente envolver entre comillas ' ' la expresión, así se retorna
+        la expresión como string.
+   Otra manera, asignar el registro "= a cualquier otro registro:
+        CTRL+R =   <hacer algo con una expresión>
+        let @o = @=
+        <pegar el registro "o en donde sea>
+   También se puede usar el registro default @" así se pega directo con "P":
+        let @"=@=
+   Otra manera más, es abrir el navegador del history de expresiones y copy pastear ahí:
+        <editar en donde sea, linea de comandos o buffer>
+        CTRL+R =       (se abre el editor de expresiones)
+        CTRL+F         (se abre el history de expresiones)
+        SHIFT+V Y      (copiar un renglón entero)
+        CTRL+C CTRL+C  (cerrar history y cerrar expresión actual)
+        CTRL+R "       (pegar la expresión)
+2b) Listar el history de expresiones:
+        history =
+        his=
+3) Pegar en un buffer o en una expresión, la última command line:
+        CTRL+R :
+   Ultimo regex:
+        CTRL+R /
+   Último texto tipeado:
+        CTRL+R .
+   Pegar filename del archivo actual:
+        CTRL+R %
+   Filename archivo anterior:
+        CTRL+R #
+4) Pegar en la command line la palabra que está en el buffer:
+        CTRL+R CTRL+A
+   (La palabra en sentido reducido es con CTRL+W en vez de CTRL+A.)
+   Pegar la línea entera del buffer hacia la command line:
+        CTRL+R CTRL+L
+   Pegar en la command line la palabra, pero si esta tiene forma de Filename, que está en el buffer:
+        CTRL+R CTRL+F
+5) Abrir el editor del history de command line:
+        q:
+   History de regex:
+        q/
+   O dentro de la command line con:
+        CTRL+F
+   También funciona en la command line de expresiones:
+        CTRL+R = CTRL+F
+   y en la de search:
+        / CTRL+F
+6) Borrar todo a la izquierda en command line;
+        CTRL+U
+   Borrar palabra a la izquierda:
+        CTRL+W
+   Inicio o fin renglón:
+        HOME y END
+        CTRL+B y CTRL+E
+   Lamentablemente no encuentro nada para borrar todo hacia la derecha
+   en el command line. Este es el workaround:
+        a. Estando en el command line, abrir el editor de command line con:
+                CTRL+F
+        b. Borrar todo a la derecha de donde queremos con:
+                "D" o "C"
+        c. Cerrar editor con:
+                CTRL+C
+           así pone el renglón resultante en la línea de comandos y seguir editando.
+           (O cerrar con ENTER para ya finalmente ejecutar ese mismo renglón.
+           O cerrar con ":q" o con "CTRL+W C" para ignorar.)
+
+
+TRUQUITOS DE NETRW (EXPLORE):
+============================
+1) Copiar un archivo, por ejemplo "miArchivo.txt" a "miArchivo_backup01.txt".
+   Hacer esto:
+        :E
+        c         (o tipear :SameDir)
+        mt
+        mf
+        mc
+   En mi netrw v149 el "c" es poner el :pwd en el directorio actual.
+   Dicen que en versiones v162 o posterior de Netrw, el comando es "cd", así
+   tocando directo en Netrw sin dos puntos ni nada.
+   El "c" o :SameDir es necesario. Si no tenemos definido SameDir, se puede usar:
+        :cd %:p:h
+   o más cortito:
+        :cd %:h
+   El directorio actual es necesario porque si no el Netrw escupe un error
+   al copiar:
+        **error** (netrw) tried using g:netrw_localcopycmd<cp>; it doesn't work!
+   Bueno.
+   Luego el "mt" marca el directorio actual como target, el "mf" marca el archivo
+   bajo el cursor, y finalmente "mc" pide copiar.
+   Entonces el Netrw da a editar el filename destino.
+   Listo!
+2) Borrar archivo:
+        D
+3) Crear directorio:
+        d
+4) Crear archivo:
+        %
+5) Renombrar archivo:
+        R
+
+
+TRUQUITOS CON NORM:
+==================
+
+1) Duplicar key al value en un json:
+
+       :exe "norm!0f\"v$yA: \<ESC>pA,\<ESC>"
+
+   eso convierte esto:
+       "myJsonKey"
+   en esto:
+       "myJsonKey": "myJsonKey",
+
+2) Reemplazar un string en un file, grabar, y pasar al siguiente
+
+       :exe "norm!:%s/FRASE ORIGINAL/FRASE NUEVA/g\<CR>:w\<CR>:bnext\<CR>"
+
+   eso convierte esto:
+       FRASE ORIGINAL
+   en esto:
+       FRASE NUEVA
+   en todo el archivo. Luego graba y pasa al siguiente.
+
+   Para repetir 30 veces:
+       30@:
+
+   Para que no se pare cuando no encuentra el string, poner flag 'e':
+
+       :exe "norm!:%s/FRASE ORIGINAL/FRASE NUEVA/ge\<CR>:w\<CR>:bnext\<CR>"
+
+3) Abrir un archivo que se llama igual en otro directorio ("../Email/"), y reemplazar el encabezado de uno
+   con el del otro. Previamente tiene que haber un split con "<C-W>s":
+
+       :exe "norm!:let fdir=expand('%:p:h')\<CR>:let fname=expand('%:t')\<CR>\<C-W>w:exe 'e ' . fdir . '/../Email/' . fname\<CR>/<h2\<CR>llllv/<\/h2\<CR>y\<C-W>wG0/<b\<CR>lllv/<\/b\<CR>p:w\<CR>\<C-W>w:Bclose\<CR>\<C-W>w"
+
+   Toma el header <h2> del segundo archivo y reemplaza el header entre <b> y </b> del primer archivo.
+   Los archivos tienen el mismo basename en su filename, solo que están en distintos directorios.
+
+   Graba, pero no pasa al siguiente archivo, porque mejor revisar a ojo cada uno, y así
+   hacer CTRL+PageDown para ir al siguiente y repetir con @: en cada uno.
+   Se puede hacer Undo y Redo para ver la diferencia antes de pasar ("u" y CTRL+R).
+
+4) Repetir "." en toda una selección:
+        (Seleccionar algo con SHIFT+V)
+        :'<,'>norm .
+
+   Ejemplo, tengo estos números:
+        1
+        2
+        3
+        4
+   Le agrego "  -  10" al primero con "A  - 10\<ESC>"
+   Los selecciono con SHIFT+V y tipeo "norm ."
+   y listo, se propaga el - 10 a todos.
+   Luego puedo re-seleccionar y correr
+        :'<,'>!bc
+   y se hace la resta.
+   Suponiendo que me dieron negativo, y quiero sacar
+   el signo menos, borro el primer signo con "I<DEL>"
+   y luego selecciono el resto y tipeo "norm." y Enter.
+   Listo, se borra el "-" de prefijo de todos.
+
+
+REGEX PARA MATCHEAR SOLO ENCABEZADO DE JOURNAL ToDo:
+====================================================
+
+Esto matchea desde una fecha al inicio del renglón, pasando por todos los renglones
+pegados a ese, hasta el primer renglón vacío (dos \n\n seguidos):
+
+        /^202\(.*\n\)\(..*\n\)*\n
+
+Con esto se quitan los encabezados y se deja el texto libre:
+
+        :%s/^2\(.*\n\)\(..*\n\)*\n//g
+
+En el tintero queda hacer el regex opuesto, que seleccione el texto libre
+sin matchear el encabezado.
+
+__
+
