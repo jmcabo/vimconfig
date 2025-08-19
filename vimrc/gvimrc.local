@@ -1,0 +1,68 @@
+"Configuración VIM Multiplataforma                          vim600:fdm=marker
+"Juan Manuel Cabo
+"Date: 2008-10-08, 2012-12-20, 2016-08-12, 2023-08-30
+
+" Común ----------------------------------------------------------------- {{{1
+
+if &compatible
+    "Habilitar caracteristicas de Vim sobre las standard de Vi:
+    set nocompatible
+endif
+
+"Deshabilitar beep y visual bell:
+set vb t_vb=
+
+"Cursor blinking solo en modo insert:
+"set guicursor=n-v-c:block-Cursor/lCursor,ve:ver35-Cursor,o:hor50-Cursor,i-ci:ver25-Cursor/1Cursor,r-cr:hor20-Cursor/1Cursor,sm:blobk-Cursor-blinkwait175-blinkoff150-blinkon175,n:blinkon0
+"set guicursor=n-v-c:block-Cursor/lCursor,ve:ver35-Cursor,o:hor50-Cursor,i-ci:ver25-Cursor/1Cursor,r-cr:hor20-Cursor/1Cursor,sm:blobk-Cursor-blinkwait0-blinkoff0-blinkon0,n:blinkon0
+
+"Cursor sin blinking siempre:
+set guicursor=a:blinkwait0
+
+"Cursor como bloque en vez de raya siempre:
+"set guicursor=a:block-cursor
+
+"Barra de scroll horizontal
+set guioptions+=b
+
+"Colores GUI
+if !exists("g:colors_name") || g:colors_name != "jmcdark"
+    try
+        colors jmcdark
+    catch /^Vim(colorscheme):E185:.*$/
+        colors desert
+    endtry
+endif
+
+" Específico de Windows ------------------------------------------------- {{{1
+if has("win32")
+    "set co=103 lines=36
+    "set guifont=Courier_New:h14:cANSI
+    set co=126 lines=44
+    set guifont=DejaVu_Sans_Mono_for_Powerline:h11:cANSI:qDRAFT
+endif
+" Específico de Linux --------------------------------------------------- {{{1
+if has("unix")
+    "set co=103 lines=36
+    "set guifont=Courier\ New\ 14
+    "set co=142 lines=53
+    "set guifont=DejaVu\ Sans\ Mono\ 10
+    set co=126 lines=44
+    set guifont=DejaVu\ Sans\ Mono\ 11
+endif
+" Teclas GUI ------------------------------------------------------------ {{{1
+"Scroll arriba y abajo con CTRL-[UP|DOWN]
+if mapcheck("<C-y>") != ""
+    unmap <C-y>
+endif
+map  <C-Up>   <C-y>
+map  <C-Down> <C-e>
+imap <C-Up>   <C-x><C-y>
+imap <C-Down> <C-x><C-e>
+if has("unix")
+    "Salvar con C-s (vs. scrollLock)
+    map <C-S> :update<CR>
+    imap <C-S> <ESC><C-S>a
+endif
+
+"--- }}}1

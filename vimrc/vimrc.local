@@ -1,0 +1,957 @@
+"Configuración VIM Multiplataforma                          vim600:fdm=marker
+"Juan Manuel Cabo
+"Date: 2008-10-08, 2010-06-07, 2012-12-20, 2013-04-13, 2016-08-12, 2023-08-30, 2024-04-29, 2024-09-06, 2024-09-19
+
+" Específico de Windows ------------------------------------------------- {{{1
+if has("win32")
+    set nocompatible
+
+    "Skip loading vimrc_example.vim, it does weird things (as of 2023):
+    "  source $VIMRUNTIME/vimrc_example.vim
+
+    source $VIMRUNTIME/mswin.vim
+
+    "Setear si tenemos cygwin
+    "let cygwinpath='h:/cygwin'
+
+    "-----from _vimrc_fabrica90 -----
+    " Use the internal diff if available.
+    " Otherwise use the special 'diffexpr' for Windows.
+    if &diffopt !~# 'internal'
+        set diffexpr=MyDiff()
+    endif
+    function MyDiff()
+        let opt = '-a --binary '
+        if &diffopt =~ 'icase' | let opt = opt . '-i ' | endif
+        if &diffopt =~ 'iwhite' | let opt = opt . '-b ' | endif
+        let arg1 = v:fname_in
+        if arg1 =~ ' ' | let arg1 = '"' . arg1 . '"' | endif
+        let arg1 = substitute(arg1, '!', '\!', 'g')
+        let arg2 = v:fname_new
+        if arg2 =~ ' ' | let arg2 = '"' . arg2 . '"' | endif
+        let arg2 = substitute(arg2, '!', '\!', 'g')
+        let arg3 = v:fname_out
+        if arg3 =~ ' ' | let arg3 = '"' . arg3 . '"' | endif
+        let arg3 = substitute(arg3, '!', '\!', 'g')
+        if $VIMRUNTIME =~ ' '
+            if &sh =~ '\<cmd'
+                if empty(&shellxquote)
+                    let l:shxq_sav = ''
+                    set shellxquote&
+                endif
+                let cmd = '"' . $VIMRUNTIME . '\diff"'
+            else
+                let cmd = substitute($VIMRUNTIME, ' ', '" ', '') . '\diff"'
+            endif
+        else
+            let cmd = $VIMRUNTIME . '\diff'
+        endif
+        let cmd = substitute(cmd, '!', '\!', 'g')
+        silent execute '!' . cmd . ' ' . opt . arg1 . ' ' . arg2 . ' > ' . arg3
+        if exists('l:shxq_sav')
+            let &shellxquote=l:shxq_sav
+        endif
+    endfunction
+
+    if exists('cygwinpath')
+        let &grepprg=cygwinpath . '/bin/grep -nH'
+    endif
+
+    language english
+
+    let Tlist_Ctags_Cmd='ctags.exe'
+endif
+" Específico de Linux --------------------------------------------------- {{{1
+if has("unix")
+    if filereadable("$VIMRUNTIME/vimrc-default.vim")
+        source $VIMRUNTIME/vimrc-default.vim
+    endif
+
+    "Backspace and cursor keys wrap to previous/next line:
+    " set backspace=2 whichwrap+=<,>,[,]
+
+    "Ver man pages con ':Man <palabra>'
+    runtime ftplugin/man.vim
+
+    set ai
+    set cindent
+endif
+" Added by juanma ------------------------------------------------------- {{{1
+" General --------------------------------------------------------------- {{{2
+set nocompatible
+
+"Skip loading /usr/share/vim/vim80/defaults.vim, it does weird things:
+let skip_defaults_vim=1
+
+"Colores Vim en consola:
+if has("win32") || has("win32unix")
+    "Use 256 colors in windows console, otherwise the colors are not right:
+    let g:JmcDarkForce16ColorsInConsole=0
+    "Use black background always in windows:
+    let g:JmcDarkUseGreyBackground=0
+else
+    "Limit to the base 16 colors, so it fallbacks to the 16 colors chosen
+    "in Linux Konsole or Yakuake appearance config:
+    let g:JmcDarkForce16ColorsInConsole=1
+    "Use slight grey background in Linux GUI:
+    let g:JmcDarkUseGreyBackground=1
+endif
+try
+    colors jmcdark
+catch /^Vim(colorscheme):E185:.*$/
+    colors darkblue
+endtry
+
+if has("syntax")
+    syntax on
+endif
+set showcmd
+set modeline
+set modelines=3
+let g:secure_modelines_modelines=3
+set nobackup
+set vb t_vb=
+set nowrap
+set undolevels=5000
+"History length default was 50 (Added 2024-06-12):
+set history=1000
+"Hacer que al incrementar 07 no pase a 10 con CTRL+A (Added 2024-08-27):
+set nrformats-=octal
+"Hacer que al incrementar cosas con guión como fechas no decremente con CTRL+A (Added 2024-09-19):
+set nrformats+=unsigned
+
+"Hacer que los comentarios y ifdefs con # no se desidenten solos
+inoremap # X#
+"Le saco el "0#". El default es: set cinkeys=0{,0},0),:,0#,!^F,o,O,e
+set cinkeys=0{,0},0),:,!^F,o,O,e
+if has("autocmd")
+    " Enable file type detection.
+    " Use the default filetype settings, so that mail gets 'tw' set to 72,
+    " 'cindent' is on in C files, etc.
+    " Also load indent files, to automatically do language-dependent indenting.
+    filetype plugin indent on
+endif
+
+"Set 'selection', 'selectmode', 'mousemodel' and 'keymodel' for MS-Windows
+behave mswin
+"Set a fold column (margin) of 2 characters wide.
+set fdc=2
+"Para que no pida presionar enter (ver hit-enter) y sea más alto el cmdline
+set cmdheight=2
+" Teclas --------------------------------------------------------------- {{{2
+map W :update<CR>
+
+"Cerrar buffer y su ventana:
+"map Q :bd<CR>
+"Cerrar buffer sin cerrar su ventana (si no hay next cierra todas):
+"map Q :bnext \| bdelete#<CR>
+"Cerrar buffer sin cerrar ventana (si es el único, cierra todas):
+map Q :Bclose<CR>
+
+"Para mostrar el nombre de la función en el statusbar, si se ejecutó
+"antes el :Tlist
+map <F3> :TlistShowTag<CR>
+map <F2> :TlistShowPrototype<CR>
+
+"Repetir búsqueda con F3,
+"Shift-F3 buscar atrás, ctrl-F3 limpiar search pattern:
+" map <F3> n
+" map <C-F3> :let @/=""<CR>
+" map <S-F3> N
+
+"Switch buffers with F5,F6. List buffers with F7
+map  <F5> :bp!<CR>
+imap <F5> <ESC><F5>
+map  <F6> :bn!<CR>
+imap <F6> <ESC><F6>
+map  <F7> :ls<CR>
+imap <F7> <ESC><F7>
+map <F8> :cn<CR>
+map <S-F8> :cp<CR>
+"Ctrl-Enter hace nueva línea y sube a la línea de arriba
+"(ideal para después de cerrar un brace }.
+imap <C-Enter> <C-o>O
+"Teclas Quickfix
+"compile file with unit tests:
+map <F9> :update<CR>:!dmd % dunit.d && ./%:r<CR>
+"map <F9> :update<CR>:make<CR>
+imap <F9> <ESC><F9>
+map  <S-F9> :make clean<CR>
+imap <S-F9> <ESC><S-F9>
+map  <F10> :update<CR>:!make run<CR>
+imap <F10> <ESC><F10>
+if has("gui_running")
+    if has("win32")
+        "Usar F11 además de F10 (F10 va a menus)
+        map  <F11> :update<CR>:!make run<CR>
+        imap <F11> <ESC><F11>
+    endif
+endif
+"Ctrl-Tab also switches buffers
+map <C-Tab> <F6>
+map <C-S-Tab> <F5>
+"Ctrl-PageDown and Ctrl-PageUp also switches buffers
+map <C-PageDown> <F6>
+map <C-PageUp> <F5>
+"Ctrl-Up and Ctrl-Down to scroll without moving cursor
+nmap <C-Up> <C-y>
+nmap <C-Down> <C-e>
+imap <C-Up>   <C-x><C-y>
+imap <C-Down> <C-x><C-e>
+"f and F switches windows (forwards and backwards respectively)
+map f <C-w>w
+map F <C-W>W
+"Fix :E not resolving to :Explore, because conflicting with :ELP that comes with logipat in the newer vimruntime.
+"cmap :E<CR> :Ex<CR>
+command! -nargs=* -bar -bang -count=0 -complete=dir E Explore <args>
+" Búsqueda ------------------------------------------------------------ {{{2
+"Highlight search (hls):
+set hlsearch
+set ignorecase
+set smartcase
+set noincsearch
+" Tabs ---------------------------------------------------------------- {{{2
+set tabstop=4
+set shiftwidth=4
+"Spaces en lugar de tabs
+set expandtab
+set softtabstop=4
+"Para ver tabs, tipear :set list. Los tabs aparecen >--- y final de linea $
+set listchars=eol:$,tab:>-
+" QuickFix ------------------------------------------------------------ {{{2
+if has("win32")
+    "set makeprg=soutmake
+    set makeprg=make
+    "Para ver el progreso de make mientras ejecuta
+    "CYGWIN
+    if exists('cygwinpath')
+        let &shellpipe='2>&1 | ' . cygwinpath . '/bin/tee'
+    endif
+    "old setting: set shellpipe=2>&1\ \|\ e:/cygwin/bin/tee
+endif
+" Explorer Plugin ----------------------------------------------------- {{{2
+let g:explSortBy='name'      " Ordenar archivos por nombre
+let g:explSuffixesLast=0     " Files matching suffixes sorted normally
+let g:explVertical=1         " Cuando es llamado con :Sexplore hace un split vertical
+" TagmaBufMgr Plugin -------------------------------------------------- {{{2
+let g:TagmaBufMgrMapChjkl = 0     "Para que no overridee Ctrl-j Ctrl-k
+let g:TagmaBufMgrMapChjklbuf = 0  "Para que no overridee Ctrl-j Ctrl-k
+let g:TagmaBufMgrMapCArrow = 0    "Para que no pise Ctrl-flechitas
+let g:TagmaBufMgrLastWindow = 1   "Cerrar vim al cerrar ultimo buffer
+" Airline Tabs and Statusbar Plugin ----------------------------------- {{{2
+set laststatus=2                                       "Always show statusline even if last window
+let g:airline#extensions#tabline#enabled = 1           "Show tabs
+let g:airline#extensions#tabline#buffer_nr_show = 1    "Tab buffer number
+"let g:airline#extensions#tabline#buffer_idx_mode = 1  "Tab number from 1 to 9 in superscript.
+
+"Show only the filename and extension in tabs (see "filename-modifiers"):
+let g:airline#extensions#tabline#fnamemod = ':t'
+"On top of that, also show enough parent dirs to differentiate in duplicates:
+let g:airline#extensions#tabline#formatter = "unique_tail_improved"
+
+"Theme of statusline and tabline:
+"let g:airline_theme="dark"
+"let g:airline_theme="kolor"
+let g:airline_theme="sol"
+
+"Powerline font symbols:
+"let g:airline_powerline_fonts=1
+""set encoding=utf-8
+
+"Notes: When more than one tab is open (ej: :tabnew) it switches to VIM's
+"native tab mode (instead of showing one buffer per Airline tab, it shows one
+"VIM native tab per Airline tab).
+"  In tab mode, use keys "gt" to move between tabs. Use :tabclose or :tabc to
+"close tabs and go back to buffers mode.
+
+
+" CtrlP plugin Fuzzy buffer/mru/file finder --------------------------- {{{2
+"Possible values: CtrlP, CtrlPBuffer, CtrlPMRU, CtrlPLastMode
+"Note: toggle modes with Ctrl up/down or with C-f and C-b:
+"      Close the ctrlp window with Ctrl-C
+"      Toggle filename only with CTRL-D and toggle regex with CTRL-R
+"      Move up or down with arrows or with CTRL-J and CTRL-K
+let g:ctrlp_cmd = "CtrlPLastMode"
+"Top-to-bottom or bottom-to-top (order of displayed options):
+let g:ctrlp_match_window = "order:ttb"
+
+
+" VMath Sum Numbers In Selection -------------------------------------- {{{2
+"One can also pass the selection to 'csvstat' from 'csvkit' like this:
+"   1) SHIFT+V and select
+"   2) Then run    :'<,'>!csvstat -y0 -H
+"      and the selection will be replaced by the stats (mean, median, sum,
+"      etc.). The -H is so that it knows that the first line is a number
+"      and not a header. The -y0 is for it not to give an error trying
+"      to autodetect CSV column separator and quoting chars.
+"      If there are multiple columns of numbers, csvstat analyzes all by
+"      default, but it can also analyze only one column.
+"   3) The one thing that csvstat has that vmath doesn't is the histogram
+"      with the median and the number of ocurrences and number of unique
+"      values.
+"But this VMath plugin does almost exactly the same.
+"   1) SHIFT+V or CTRL+V and select a set of numbers.
+"   2) Hit the keys  ++  and it will show the stats, and have put them
+"      in their respective registers. To paste the average, type "ap
+"      To paste the sum type "sp
+vmap <expr>  ++  VMATH_YankAndAnalyse()
+nmap         ++  vip++
+
+
+" DiffOrig brought from defaults.vim ---------------------------------- {{{2
+
+"Since I disabled loading of defaults.vim (it does too many weird things),
+"I wanted to bring this function which seems useful:
+
+" Convenient command to see the difference between the current buffer and the
+" file it was loaded from, thus the changes you made.
+" Only define it when not defined already.
+" Revert with: ":delcommand DiffOrig".
+if !exists(":DiffOrig")
+    command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
+                \ | wincmd p | diffthis
+endif
+
+
+" Bash shell ---------------------------------------------------------- {{{2
+if has("win32")
+
+    if exists('cygwinpath')
+        "wdebug:  ctags works with everything commented. delete if these are not
+        "         needed for other things:
+        "
+        "CYGWIN
+        let &shell=cygwinpath . '/bin/bash.exe -i'
+        set shellcmdflag=-c
+        set shellredir=>%s\ 2>&1
+        set shellxquote=\"
+        set shellslash
+    else
+        "DJGPP Bash
+        "wdebug:  ctags works with everithing commented. delete if these are not
+        "         needed for other things:
+        "set shell=bash.exe\ -i
+        "set shellcmdflag=-c
+        "set shellredir=>%s\ 2>&1
+        "set shellxquote=\"
+        "set shellslash
+    endif
+endif
+
+" SQL Autocomplete CTRL+C Deshabilitar -------------------------------- {{{2
+
+"Estaba muy pesado que editando archivos .SQL se hace una pausa cada vez
+"que uno sale del modo insert con CTRL+C. Muy hincha. Resulta que hay una
+"manera en Vim de que se conecte a la base de datos y que autocomplete el .SQL
+"con nombres de tablas reales y cosas así. No me interesa.
+"
+"Ver, greppear omni:
+"   /usr/share/vim/vim82/ftplugin/sql.vim
+"Y ver, greppear omni:
+"   :help ft_sql
+"Con esto se ven los mappings actuales al editar un ".sql":
+"   :verbose imap <buffer> <C-c>
+"Por ejemplo, se ve que CTRL+C+t autocompleta tablas.
+"Igual, al intentar hacer <C-C>t tira este error:
+"   SQLComplete:The dbext plugin must be loaded for dynamic SQL completion
+"
+
+"El default era esto con CTRL+C:
+    "let g:ftplugin_sql_omni_key = '<C-C>'
+"Se puede poner a CTRL+space:
+let g:ftplugin_sql_omni_key = '<C-Space>'
+"Igual lo deshabilito con esto. Comentar para no deshabilitar:
+let g:omni_sql_no_default_maps = 1
+
+
+" Comandos ------------------------------------------------------------ {{{1
+"Para abrir la carpeta actual con Ctrl-F5 {{{2
+if has("win32") || has("win32unix")
+    if has("gui_running")
+        " Open the folder containing the currently open file. Double <CR> at end
+        " is so you don't have to hit return after command. Double quotes are
+        " not necessary in the 'explorer.exe %:p:h' section.
+        :map <silent> <C-F5> :if expand("%:p:h") != ""<CR>:set nossl<CR>:!start explorer.exe %:p:h<CR>:set ssl<CR>:endif<CR><CR>
+        :imap <silent> <C-F5> <ESC><C-F5>a
+    endif
+else
+    " Open the folder containing the currently open file. Double <CR> at end
+    " is so you don't have to hit return after command. Double quotes are necessary in linux.
+    :map <silent> <C-F5> :if expand("%:p:h") != ""<CR>:!dolphin "%:p:h" &<CR>:endif<CR><CR>
+    :imap <silent> <C-F5> <ESC><C-F5>a
+endif
+
+"Para swapear líneas con Ctrl-[J|K] {{{2
+function! MySwapUp()
+    if ( line( '.' ) > 1 )
+        let cur_col = virtcol(".")
+        if ( line( '.' ) == line( '$' ) )
+            normal! ddP
+        else
+            normal! ddkP
+        endif
+        execute "normal " . cur_col . "|"
+    endif
+endfunction
+function! MySwapDown()
+    if ( line( '.' ) < line( '$' ) )
+        let cur_col = virtcol(".")
+        normal! ddp
+        execute "normal " . cur_col . "|"
+    endif
+endfunction
+noremap <silent> <C-K> :call MySwapUp()<CR>
+noremap <silent> <C-J> :call MySwapDown()<CR>
+function! Up()
+    normal! ~
+endfunction
+
+"Para swappear palabras con gw  {{{2
+nmap <silent> gw "_yiw:s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<cr><c-o><c-l>
+
+"Para dejar un enter desde el modo normal {{{2
+nmap <C-CR> O<ESC>
+imap <C-CR> <C-o>O
+"Para dejar un enter en la linea anterior con CTRL-]  Util luego de cerrar un brace }.
+imap <C-]> <C-o>O
+
+
+"Para que C-a incremente un número en lugar de seleccionar todo (win32) {{{2
+if has("win32")
+    unmap <C-a>
+endif
+"Para tener Folding automatico en source files {{{2
+"(zR abrir todos, zM cerrar todos, zc cerrar un fold, zf marcar un fold)
+"  autocmd BufNewFile,BufRead {*.cpp,*.h,*.c} setlocal foldmethod=indent
+autocmd BufNewFile,BufRead {*.cpp,*.h,*.c} setlocal foldmethod=marker fdl=0
+
+"Para editar makefiles sin expandir tabs a espacios {{{2
+autocmd BufNewFile,BufRead [mM]akefile* setlocal noexpandtab
+
+"Para quitar los ^M {{{2
+command!  QuitarCM  :%s/$//
+
+"Para quitar los espacios al final de línea {{{2
+command! QuitarTrailingSpace  :%s/\s\s*$//
+
+"Para ir al directorio del archivo actual {{{2
+"NOTA: Para ver el contenido de estos registros de filename como %:p:h, hay que
+"      pasárselos a un comando que espere un path. Por eso :echo %:p:h da invalid
+"      expression. Entonces Se puede hacer:
+"          :echo expand('%:p:h')
+"      O pasárselo al comando echo de linux con '!':
+"          :!echo %:p:h
+"NOTA: hacer cd %:h  también casi que serviría, aunque %:h da path relativo
+"      mientras que %:p:h da path absoluto.
+command! SameDir  :cd %:p:h
+
+"Para comentar muchas lineas editando assembler {{{2
+command! -range AsmComment :call MakeComment(<line1>, <line2>, ';')
+command! -range AsmUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\);/\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando perl, make, configurations {{{2
+command! -range Comment :call MakeComment(<line1>, <line2>, '#')
+command! -range UnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)#/\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando .vim files {{{2
+command! -range VimComment :call MakeComment(<line1>, <line2>, '"')
+command! -range VimUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)"/\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando VisualBasic,VBScript files {{{2
+command! -range VComment :call MakeComment(<line1>, <line2>, "'")
+command! -range VUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)'/\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando C,CPP,H,CS files {{{2
+command! -range CComment :call MakeComment(<line1>, <line2>, '\/\/')
+command! -range CUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)\/\//\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando C,CPP,H,CS files con //debug: {{{2
+command! -range DComment :call MakeComment(<line1>, <line2>, '\/\/debug:')
+command! -range DUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)\/\/debug:\?/\1/ | :let @/=@w
+
+"Para comentar muchas lineas editando .S (HP48 SysRPL) files con * asterisco en columna 0: {{{2
+command! -range SComment :let @w=@/ | <line1>,<line2>:s/^/*/ | :let @/=@w
+command! -range SUnComment :let @w=@/ | <line1>,<line2>:s/^\(\s*\)\*/\1/ | :let @/=@w
+
+"Funcion para crear comentarios indentados {{{2
+function! MakeComment(firstLine, lastLine, commentStr)
+    "Count min spaces to the left
+    let minSpaceCount = 80
+    let i = a:firstLine
+    let allEmptyLines = 1
+    while i <= a:lastLine
+        let line = getline(i)
+        let j = 0
+        let spaceCount = 0
+        let emptyLine = 1
+        "Count spaces before a non-space character, ignore empty lines.
+        while j < strlen(line)
+            if line[j] == " " || line[j] == "\t"
+                let spaceCount = spaceCount + 1
+            else
+                let emptyLine = 0
+                let allEmptyLines = 0
+                break
+            endif
+            let j = j + 1
+        endwhile
+        "Determine minimum indentation space count:
+        if !emptyLine && spaceCount < minSpaceCount
+            let minSpaceCount = spaceCount
+        endif
+        let i = i + 1
+    endwhile
+
+    "Don't create comments if all lines are empty (only space):
+    if allEmptyLines
+        return
+    endif
+
+    "Generate space match string
+    let spaceChars = ""
+    let i = 0
+    while i < minSpaceCount
+        let spaceChars = spaceChars . '\s'
+        let i = i + 1
+    endwhile
+
+    "Insert commentStr after the minimum spaces of indentation:
+    exe a:firstLine . ',' . a:lastLine . ':s/^\(' . spaceChars . '\)/\1' . a:commentStr . '/'
+endfunction
+
+"Para que el default syntax para los .asm sea NASM {{{2
+let asmsyntax="nasm"
+
+"Properties en CSharp a partir de los campos privados {{{2
+command! -range MakeProperties <line1>,<line2>:s/^\s*\(private\|protected\) \(.*\) \([^;]*\)[;]/\t\tpublic \2 \u\3\r\t\t{\r\t\t\tget {return \3;}\r\t\t\tset {\3 = value;}\r\t\t}\r/
+
+"Llenado en CSharp de las properties de un objeto {{{2
+command! -range MakeObjFromReader <line1>,<line2>:s/.*private \(.*\) \([^;]*\);/\t\t\tobj.\2 = (\1) r\[\"\2\"\];/
+
+"Properties proxy en C# a partir de una interfaz {{{2
+"
+"Implementa como property un renglón de interfaz con la forma
+"       Tipo NombrePropiedad {get; set;}
+"Se lo banca si no tiene el getter o el setter.
+command! -range ImplementProxyProperties <line1>,<line2>call ImplementProxyProperties()
+function! ImplementProxyProperties() range
+    let i = a:firstline
+    let lastLine = a:lastline
+
+    while i <= lastLine
+        let line = getline(i)
+
+        let property = s:implementProxyPropertyFromString(line)
+
+        call s:insertFromLine(i, property)
+
+        let newlineCount = s:strcount(property, "\n")
+        let i = i + newlineCount + 1
+        let lastLine = lastLine + newlineCount
+        execute "normal :" i
+    endwhile
+endfunction
+
+"Reemplaza la línea lineNumber por expr. Si expr es multilínea, inserta las
+"siguientes líneas luego sin sobreescribir las que estaban. Sólo se pisa la
+"primera, la indicada por lineNumber.
+"La función setline() no sirve porque no permite newlines. Esta función sí.
+function! s:insertFromLine(lineNumber, expr)
+    if a:expr != ""
+        set paste
+        "Ir a la línea
+        execute ":" . a:lineNumber
+        "Borrarla
+        normal! ddO
+        "Escribir
+        execute "normal i" . a:expr
+        set nopaste
+    endif
+endfunction
+
+function! s:strcount (haystack, needle)
+    let i = 0
+    let c = 0
+    while i < strlen(a:haystack)
+        let i = stridx(a:haystack, a:needle, i)
+        if i == -1
+            break
+        endif
+        let c = c + 1
+        let i = i + 1
+    endwhile
+    return c
+endfunction
+
+function! s:implementProxyPropertyFromString (line)
+    "Capturar el indent, el tipo, el nombre y si tiene getter o setter.
+
+    let list = matchlist(a:line, '^\(\s*\)\(\S*\)\s*\(\S*\)\s*{\(.*\)}\s*$')
+
+    if list == []
+        return ""
+    endif
+
+    let startSpace = list[1]
+    let type = list[2]
+    let name = list[3]
+    let body = list[4]
+
+    let property = startSpace . "public " . type . " " . name . "\n"
+    let property = property . startSpace . "{" . "\n"
+    if body =~ "get"
+        let property = property . startSpace . "\tget {return proxy." . name . ";}\n"
+    endif
+    if body =~ "set"
+        let property = property. startSpace . "\tset {proxy." . name . " = value;}\n"
+    endif
+    let property = property . startSpace . "}\n"
+
+    return property
+endfunction
+
+"Métodos proxy en CSharp a partir de una interfaz {{{2
+command! -range ImplementProxyMethods <line1>,<line2>call ImplementProxyMethods()
+function! ImplementProxyMethods() range
+    let i = a:firstline
+    let lastLine = a:lastline
+
+    while i <= lastLine
+        let line = getline(i)
+
+        let method = s:implementProxyMethodFromString(line)
+
+        call s:insertFromLine(i, method)
+
+        let newlineCount = s:strcount(method, "\n")
+        let i = i + newlineCount + 1
+        let lastLine = lastLine + newlineCount
+        execute "normal :" i
+    endwhile
+endfunction
+
+function! s:implementProxyMethodFromString (line)
+    "Capturar el indent, el tipo, el nombre y si tiene getter o setter.
+
+    let list = matchlist(a:line, '^\(\s*\)\(\S*\)\s*\(\S*\)\s*(\(.*\))\s*;\s*$')
+
+    if list == []
+        return ""
+    endif
+
+    let startSpace = list[1]
+    let type = list[2]
+    let name = list[3]
+    let body = list[4]
+
+    let paramNamesList = s:parseParamNames(body)
+
+    let method = startSpace . "public " . type . " " . name . "(" . body . ")\n"
+    let method = method . startSpace . "{" . "\n"
+    let method = method . startSpace . "\t"
+    if (type != "void")
+        let method = method . "return "
+    endif
+    let method = method . "proxy." . name . "(" . join(paramNamesList, ", ") . ");\n"
+    let method = method . startSpace . "}\n"
+
+    return method
+endfunction
+
+"Devuelve una lista con los nombres de parámetros sin los types ni las comas.
+"Lo que debe recibir es la lista de argumentos, sin los paréntesis y sin espacios en los bordes.
+"Si el type tiene "out" o "ref" como prefijo, se incluirá en el nombre
+"resultante.
+function! s:parseParamNames (body)
+    let paramNames = []
+    let i = 0
+    let captureName = '[^,]*\s\([_0-9A-Za-z]*\)\(,\|$\)'
+    while i < strlen(a:body)
+        let mlist = matchlist(a:body, captureName, i)
+        if mlist == []
+            break
+        endif
+
+        let paramName = mlist[1]
+
+        if mlist[0] =~ '^\s*out\s'
+            let paramName = "out " . paramName
+        endif
+        if mlist[0] =~ '^\s*ref\s'
+            let paramName = "ref " . paramName
+        endif
+
+        call add(paramNames, paramName)
+        let i = i + strlen(mlist[0])
+    endwhile
+    return paramNames
+endfunction
+
+"Generar defininciones de constantes a partir de un String Table Resource {{{2
+command! -range MakeHeaderFromResource  <line1>,<line2>call MakeHeaderFromResource()
+function! MakeHeaderFromResource() range
+    "Reemplaza las columnas de strings por defines con valores incrementales
+    let i = a:firstline
+    let val = 100
+    while i <= a:lastline
+        let line = getline(i)
+        let repl = substitute(line, '[ ]*\(IDS_[^, ]*\).*', '#define \1\t' . val, 'g')
+        call setline(i, repl)
+        let i=i+1
+        if line != repl
+            let val = val + 1
+        endif
+    endwhile
+endfunction
+
+"Folding como en .NET  {{{2
+function! NetFold()
+  syn region myFold start="#region" end="#endregion" fold transparent
+  syn sync fromstart
+  set foldmethod=syntax
+  set foldcolumn=2
+endfunction
+function! NetUnFold()
+  set foldmethod=manual
+  set foldcolumn=0
+  norm zE
+endfunction
+autocmd BufNewFile,BufRead *.cs setfiletype cs
+autocmd BufNewFile,BufRead *.cs call NetFold()
+command! NetFolding  :call NetFold()
+command! UnNetFolding  :call NetUnFold()
+
+"Insertar tiempo en el current buffer {{{2
+function! WriteTime()
+    call append(line("."), strftime("%X") . "  ")
+    .+1
+    norm A
+endfunction
+command! Time :call WriteTime()
+"nmap <C-T> :Time<CR>A
+"imap <C-T> <ESC>:Time<CR>A
+
+"IfnDef, define y endif para headers c++ {{{2
+command! -range MakeIfndef <line1>,<line2> :s/\(.*\)/#ifndef \1\r#define \1\r\r\r#endif \/\/\1\r/
+
+"Arreglar los acentos de un archivo de dir/s {{{2
+function! DirsFixFunction()
+    "norm :%s/o/ó/gc<CR>:%s/ao/ção/gc<CR>:%s//ç/gc<CR>:%s//ê/gc<CR>:%s/¨/¿/gc<CR>:%s/¢/ó/gc<CR>:%s//é/gc<CR>:%s/ø/°/gc<CR>:%s//É/gc<CR>:%s/¡/í/gc<CR>:%s/£/ú/gc<CR>:%s//ò/gc<CR>:%s/ /á/gc<CR>:%s/¤/ñ/gc<CR>
+    exe ":%s/ao/ção/gce"
+    exe ":%s//ç/gce"
+    exe ":%s//ê/gce"
+    exe ":%s/¨/¿/gce"
+    exe ":%s/¢/ó/gce"
+    exe ":%s//é/gce"
+    exe ":%s/ø/°/gce"
+    exe ":%s//É/gce"
+    exe ":%s/¡/í/gce"
+    exe ":%s/£/ú/gce"
+    exe ":%s//ò/gce"
+    exe ":%s/ /á/gce"
+    exe ":%s/¤/ñ/gce"
+    exe ":%s//Ö/gce"
+    exe ":%s//ö/gce"
+    exe ":%s//ô/gce"
+    exe ":%s/«/½/gce"
+    exe ":%s/§/º/gce"
+    exe ":%s//¤/gce"
+    exe ":%s//è/gce"
+    exe ":%s//ÿ/gce"
+    exe ":%s//ä/gce"
+    exe ":%s//ï/gce"
+    exe ":%s//â/gce"
+    exe ":%s//ü/gce"
+    exe ":%s//à/gce"
+    exe ":%s//î/gce"
+endfunction
+command! DirsFix :call DirsFixFunction()
+
+"Quitar un Buffer sin cerrar la ventana  {{{2
+" Por Raymond Li -----------------------------
+" Put this into .vimrc or make it a plugin.
+" Mapping :Bclose to some keystroke would probably be more useful.
+" I like the way buflisted() behaves, but some may like the behavior
+" of other buffer testing functions.
+
+command! Bclose call <SID>BufcloseCloseIt()
+
+function! <SID>BufcloseCloseIt()
+    let l:currentBufNum = bufnr("%")
+    let l:alternateBufNum = bufnr("#")
+    if buflisted(l:alternateBufNum)
+        buffer #
+    else
+        try
+            bnext
+        catch /^Vim(bnext):E85: There is no listed buffer$/
+            "NOTE: bnext produces error when trying to close :Explore if there
+            "      are no other buffers (ie: just opened vim).
+            execute("bdelete ".l:currentBufNum)
+            return
+        endtry
+    endif
+    if bufnr("%") == l:currentBufNum
+        new
+    endif
+    if buflisted(l:currentBufNum)
+        execute("bdelete ".l:currentBufNum)
+    endif
+endfunction
+
+"Otra función para quitar un buffer sin cerrar la ventana {{{2
+"Tip #165: Deleting a buffer without closing the window
+command! -nargs=? -complete=buffer -bang BufClose
+    \ :call BufClose(expand('<args>'), expand('<bang>'))
+
+function! BufClose(buffer, bang)
+    if a:buffer == ''
+        let buffer = bufnr('%')
+    else
+        let buffer = bufnr(a:buffer)
+    endif
+
+    if buffer == -1
+        echohl ErrorMsg
+        echomsg "No matching buffer for" a:buffer
+        echohl None
+        return
+    endif
+
+    let current_window = winnr()
+    let buffer_window = bufwinnr(buffer)
+
+    if buffer_window == -1
+        echohl ErrorMsg
+        echomsg "Buffer" buffer "isn't open in any windows."
+        echohl None
+        return
+    endif
+
+    if a:bang == '' && getbufvar(buffer, '&modified')
+        echohl ErrorMsg
+        echomsg 'No write since last change for buffer'
+            \ buffer '(add ! to override)'
+        echohl None
+        return
+    endif
+
+    if buffer_window >= 0
+        exe 'norm ' . buffer_window . "\<C-w>w"
+        exe 'enew' . a:bang
+        exe 'norm ' . current_window . "\<C-w>w"
+    endif
+
+    silent exe 'bdel' . a:bang . ' ' . buffer
+endfunction
+
+"NOTE: Command line for compiling a .NET solution {{{2
+
+" !'C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727\msbuild.exe /verbosity:quiet ..\..\ParameterGrid.sln'
+"
+" !'..\bin\debug\ParameterGridBox.exe'
+
+"NOTE: Regular expression for searching one-line IF's without braces: {{{2
+"
+"     /\<if\>[^{]*\_$\_.[^{]*$
+"
+"  Will match:
+"       if (hola)
+"           printf("hola");
+"
+"  And not match:
+"       if (hola)
+"       {
+"           printf("hola");
+"       }
+"
+"  Also, replace \<if\> for \<for\> and \<else\> to find those too.
+"
+"Set cindent on D, JS and HTML files: {{{2
+
+autocmd BufNewFile,BufRead {*.d,*.js,*.html} setlocal cindent
+
+"Set nocindent on TXT files (for commas): {{{2
+
+autocmd BufNewFile,BufRead {*.txt} setlocal nocindent
+
+"Set indent textwidth=92 on to_do.txt for Voom left panel: {{{2
+"(Without the Voom outliner left panel it the ideal is tw=123 for GVim):
+
+autocmd BufNewFile,BufRead {to_do*.txt} setlocal tw=92
+
+"NOTE: Shortcut para indentar {{{2
+"
+"  Seleccionar lo que se quiere indentar y tipear = (igual)
+"  Para indentar todo:
+"    gg=G
+"
+"---
+
+"Poner archivo como UTF-8: {{{2
+
+function! Utf8Set()
+  set enc=utf-8
+  set fenc=utf-8
+endfunction
+
+command! Utf8 :call Utf8Set()
+
+"autocmd BufNewFile,BufRead *.php :Utf8
+
+"Funcion para calcular tiempo de sueño con DateDiff {{{2
+
+"Calcular las horas de sueño dados renglones así:
+"            Desperté 5AM. Antes 2AM. Dormí 23:30hs.
+"            Desperté 6:30AM. Antes 2:30AM. Dormí 22hs
+"            Desperté 6:30AM. Dormí 00hs.
+"Para una selección, mostrar en output la lista de horas determinada en cada
+"uno de esos renglones, o solo un valor si es un renglón. No altera el buffer.
+function! SleepHoursInString(str)
+    "Parsear dígitos y ':' luego de las palabras "Desperté" y "Dormí", sin
+    "importar lo de alrededor.
+    let m = matchlist(a:str, 'Desperté \([0-9:]*\).*Dormí \([0-9:]*\).*')
+    if len(m) == 0 || m[1] == "" || m[2] == ""
+        return -1
+    endif
+    let hours = trim(system('DateDiff -t ' . m[1] . ' yesterday ' . m[2]))
+    "Restar 24hs a los que se pasan por usar 'yesterday' pero ser luego de medianoche,
+    "por ejemplo "DateDiff 8:30 yesterday 1:00 -t" da 31.5 en vez de 7.5.
+    let hours = fmod(str2float(hours), 24)
+    return hours
+endfunction
+
+function! SleepHoursLines(firstLine, lastLine, writeToBuffer)
+    "Ir línea por línea del range seleccionado y llamar a SleepHoursInString() en cada string de línea:
+    let i = a:firstLine
+    let hoursList = []
+    while i <= a:lastLine
+        let line = getline(i)
+        let i = i + 1
+        "Parsear cada línea y ejecutar DateDiff:
+        let hours = SleepHoursInString(line)
+        if ! a:writeToBuffer
+            "Mostrar:
+            echon hours . "\n"
+        else
+            "Guardar:
+            call add(hoursList, hours)
+        endif
+    endwhile
+
+    if a:writeToBuffer
+        "Reemplazar esas líneas del buffer con la lista de resultados:
+        let i = 0
+        while i < len(hoursList)
+            call setline(a:firstLine + i, hoursList[i])
+            let i = i + 1
+        endwhile
+    endif
+endfunction
+
+command! -range SleepHours :call SleepHoursLines(<line1>, <line2>, 0)
+command! -range SleepHoursPut :call SleepHoursLines(<line1>, <line2>, 1)
+
+"--- }}}2
+
+"--- }}}1
